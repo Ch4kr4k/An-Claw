@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="a11y_description">Lets the an-claw agent read the screen and tap, swipe and type for you when you ask it to. Every action goes through claw\'s permission prompts.</string>
+    <string name="admin_description">Lets the an-claw agent lock the screen when you ask it to.</string>
+</resources>

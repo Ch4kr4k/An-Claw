@@ -1,0 +1,24 @@
+[package]
+name = "anclaw-mcp-hub"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+description = "Stdio MCP server bundled with an-claw: Hugging Face Hub and GitHub tools"
+
+[[bin]]
+name = "anclaw-mcp-hub"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+ureq = { version = "2.12", default-features = false, features = ["tls", "gzip", "json"] }
+flate2 = "1"
+tar = "0.4"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1
+panic = "abort"

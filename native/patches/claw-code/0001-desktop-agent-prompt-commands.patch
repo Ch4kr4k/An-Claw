@@ -1,0 +1,42 @@
+--- a/crates/rusty-claude-cli/src/desktop_agent.rs	2026-11-02 17:21:55.876791448 +0530
++++ b/crates/rusty-claude-cli/src/desktop_agent.rs	2026-11-02 17:22:07.763499634 +0530
+@@ -415,6 +415,10 @@
+         }
+     }
+     cli.system_prompt.push(DESKTOP_PROMPT.to_string());
++    // A host app (an-claw on Android) can describe its environment to the model.
++    if let Some(extra) = std::env::var("CLAW_APP_PROMPT").ok().filter(|t| !t.trim().is_empty()) {
++        cli.system_prompt.push(extra);
++    }
+     // The terminal's version (built with no terminal here) says pictures
+     // are not drawn; the app draws them.
+     cli.system_prompt
+@@ -461,6 +465,10 @@
+             }
+             Command::Prompt(text) => {
+                 TURN_RUNNING.store(true, Ordering::SeqCst);
++                // Prompt-backed slash commands (/review, /security-review,
++                // /simplify, /debug, /deep-research, …) run their prompt, as
++                // in the terminal, instead of reaching the model as "/review".
++                let text = expand_prompt_command(&text).unwrap_or(text);
+                 cli.run_desktop_turn(&text);
+                 // Messages sent after the turn's last step run next.
+                 while let Some(queued) = runtime::turn_keys::take_queued() {
+@@ -550,6 +558,17 @@
+     "usage",
+ ];
+ 
++/// The prompt of a prompt-backed slash command typed in the app, with its
++/// arguments as the focus; `None` for anything else.
++fn expand_prompt_command(text: &str) -> Option<String> {
++    let rest = text.trim().strip_prefix('/')?;
++    let (word, args) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
++    if word.is_empty() || !word.chars().all(|c| c.is_ascii_lowercase() || c == '-') {
++        return None;
++    }
++    crate::repl_commands::prompt_for_command(word, Some(args))
++}
++
+ /// The command word of `text` when it is one the app runs itself.
+ fn desktop_slash_command(text: &str) -> Option<&str> {
+     let word = text.trim().strip_prefix('/')?.split_whitespace().next()?;

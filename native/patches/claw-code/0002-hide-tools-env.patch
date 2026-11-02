@@ -1,0 +1,36 @@
+--- a/crates/rusty-claude-cli/src/main.rs	2026-11-02 18:13:14.242724052 +0530
++++ b/crates/rusty-claude-cli/src/main.rs	2026-11-02 18:13:14.264658024 +0530
+@@ -15616,6 +15616,25 @@
+     extra_body
+ }
+ 
++/// Tools a host app hides from the model (`CLAW_HIDE_TOOLS`, comma-separated
++/// names, case-insensitive): an-claw on a phone drops desktop-only tools (X11,
++/// Browser, COM, …) so a slow local model reads thousands fewer prompt tokens.
++/// Unlike `--allowedTools`, MCP tools stay available.
++fn hidden_by_host(name: &str) -> bool {
++    static HIDDEN: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
++    HIDDEN
++        .get_or_init(|| {
++            env::var("CLAW_HIDE_TOOLS")
++                .unwrap_or_default()
++                .split(',')
++                .map(|n| n.trim().to_ascii_lowercase())
++                .filter(|n| !n.is_empty())
++                .collect()
++        })
++        .iter()
++        .any(|hidden| hidden.eq_ignore_ascii_case(name))
++}
++
+ /// Deferred tools `ToolSearch` has loaded in this process (canonical names).
+ static LOADED_TOOLS: Mutex<BTreeSet<String>> = Mutex::new(BTreeSet::new());
+ 
+@@ -16022,6 +16041,7 @@
+                 let definitions = definitions
+                     .into_iter()
+                     .filter(|tool| !NEVER_SENT_TOOLS.contains(&tool.name.as_str()))
++                    .filter(|tool| !hidden_by_host(&tool.name))
+                     .collect();
+                 if defers_tools(&self.model) {
+                     defer_tool_definitions(definitions)
